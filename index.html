@@ -13,7 +13,7 @@
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]){
     --bg:#121212;--fg:#f5f5f4;--muted:#a8a29e;--line:#2c2a28;--surface:#1b1a19;
     --ac:#4ade80;--ac-soft:#14301f;--warn:#fbbf24;
   }
@@ -218,7 +218,7 @@ function gen(){
   fillOp(present);
   var bill=present.filter(function(s){return s.b});
   if(!bill.length)warn.push('No billing person present. Someone must cover the counter.');
-  var mode=function(s){return MODE[s.i];}
+  var mode=function(s){return MODE[s.i]};
 
   // who does front duty
   var elig=present.filter(function(s){return mode(s)!=='none'});
@@ -256,7 +256,7 @@ function gen(){
     if(bi<0)break;
     order.push(order.splice(bi,1)[0]);
   }
-  for(var it2=0;it2<20;it2++){var bad2=-1;for(var q3=0;q3<n;q3++){if(l7(order[q3])&&endAt(q3)>1140){bad2=q3;break}}if(bad2<=0)break;var tmp=order[bad2];order[bad2]=order[bad2-1];order[bad2-1]=tmp[...]
+  for(var it2=0;it2<20;it2++){var bad2=-1;for(var q3=0;q3<n;q3++){if(l7(order[q3])&&endAt(q3)>1140){bad2=q3;break}}if(bad2<=0)break;var tmp=order[bad2];order[bad2]=order[bad2-1];order[bad2-1]=tmp}
 
   var t=840,front=[];
   shorts.forEach(function(s){front.push({p:s,a:t,b:t+60});t+=60});
