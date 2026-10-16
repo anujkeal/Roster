@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Roster</title>
+<style>
+:root{
+  --bg:#fafaf9;--fg:#1c1917;--muted:#78716c;--line:#e7e5e4;--surface:#fff;
+  --ac:#15803d;--ac-soft:#dcfce7;--warn:#b45309;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) {
+    --bg:#121212;--fg:#f5f5f4;--muted:#a8a29e;--line:#2c2a28;--surface:#1b1a19;
+    --ac:#4ade80;--ac-soft:#14301f;--warn:#fbbf24;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121212;--fg:#f5f5f4;--muted:#a8a29e;--line:#2c2a28;--surface:#1b1a19;
+  --ac:#4ade80;--ac-soft:#14301f;--warn:#fbbf24;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{
+  margin:0 auto;max-width:520px;padding:20px 16px 32px;
+  background:var(--bg);color:var(--fg);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;line-height:1.4;
+}
+h1{font-size:22px;font-weight:700;margin:0 0 20px}
+section{margin-bottom:24px}
+.row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+h2{font-size:15px;font-weight:600;margin:0}
+.sub{font-size:13px;color:var(--muted)}
+
+/* staff */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.person{
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
+  min-height:46px;padding:0 12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  transition:background .15s,border-color .15s,opacity .15s;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+}
+.person:has(input:checked){background:var(--ac-soft);border-color:var(--ac)}
+.person:not(:has(input:checked)){opacity:.55}
+.person label{flex:1;display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer;min-width:0}
+.person input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--ac);flex:none}
+.person .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person small{color:var(--muted);font-size:12px}
+.tag{font-size:12px;color:var(--warn);white-space:nowrap}
+.person select{
+  border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;
+  padding:6px 0;max-width:80px;
+}
+
+/* controls */
+select.full{
+  width:100%;height:46px;padding:0 12px;font:inherit;
+  color:var(--fg);background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;
+}
+button,a.btn{
+  display:flex;align-items:center;justify-content:center;
+  height:48px;padding:0 16px;border:0;border-radius:12px;
+  font:inherit;font-weight:600;text-decoration:none;cursor:pointer;
+}
+.primary{width:100%;background:var(--ac);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .primary{color:#052e16}}
+:root[data-theme="dark"] .primary{color:#052e16}
+.link{height:auto;padding:4px 0;background:none;color:var(--ac);font-size:14px;font-weight:500}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+a.wa{background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+
+/* output */
+textarea{
+  width:100%;min-height:200px;padding:14px;resize:none;
+  background:var(--surface);color:var(--fg);
+  border:1px solid var(--line);border-radius:12px;
+  font:inherit;font-size:15px;line-height:1.6;
+}
+textarea:focus,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.warn{color:var(--warn);font-size:14px;margin-top:10px;white-space:pre-line}
+.warn:empty{display:none}
+
+/* front-duty sheet */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;padding:16px;z-index:10}
+.sheet{
+  width:100%;max-width:420px;background:var(--surface);border-radius:16px;padding:16px;
+  display:grid;gap:8px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+}
+.sheet-title{font-weight:600;margin:0 4px 6px}
+.sheet button{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line)}
+.sheet button.on{border-color:var(--ac);color:var(--ac);background:var(--ac-soft)}
+.sheet button.ghost{color:var(--muted)}
+</style>
+</head>
+<body>
+<h1>Daily Roster</h1>
+
+<section>
+  <div class="row"><h2>Who is present?</h2><span class="sub">Untick leave · hold name for front duty</span></div>
+  <div class="grid" id="staff"></div>
+</section>
+
+<section>
+  <div class="row"><h2>Opening duty</h2><span class="sub">Girls rotate</span></div>
+  <select id="op" class="full" onchange="gen()"></select>
+</section>
+
+<button class="primary" onclick="gen()">Make roster</button>
+
+<section style="margin-top:28px">
+  <div class="row">
+    <h2>Roster</h2>
+    <button class="link" onclick="gen()">Shuffle</button>
+  </div>
+  <textarea id="out" readonly placeholder="Press Make roster"></textarea>
+  <div class="warn" id="warn"></div>
+  <div class="actions">
+    <button class="ghost" id="copy" onclick="cp()">Copy</button>
+    <a class="btn wa" id="wa" href="#" target="_blank" rel="noopener" onclick="save()">WhatsApp</a>
+  </div>
+</section>
+
+<div class="sheet-bg" id="sheetBg" hidden onclick="if(event.target===this)closeSheet()">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-title" id="sheetTitle"></div>
+    <button data-m="full" onclick="setMode('full')">Wants front duty (normal)</button>
+    <button data-m="short" onclick="setMode('short')">Not well: short front (1 hour)</button>
+    <button data-m="none" onclick="setMode('none')">No front duty (lunch only)</button>
+    <button class="ghost" onclick="closeSheet()">Cancel</button>
+  </div>
+</div>
+
+<script>
+// g=girl (shift 10-8), b=billing, r=sends sell message (no front 9-10), nf=no front duty, p=promoter
+// MODE per person: 'full' = normal front rotation, 'short' = 1 hour front, 'none' = lunch only
+var STAFF=[
+{n:'Anuj'},{n:'Muskan',g:1},{n:'Khushi',g:1},{n:'Pardeep',b:1,r:1},{n:'Ankit'},{n:'Kishan'},
+{n:'Kajal',g:1,b:1,nf:1},{n:'Prem',r:1},{n:'Kunal',nf:1,p:1},{n:'Prince',nf:1,p:1},
+{n:'Rahul',nf:1,p:1,t:'12-9',flex:1},{n:'Aftab',b:1,r:1}
+];
+var MODE=STAFF.map(function(s){return s.nf?'none':'full'});
+var box=document.getElementById('staff');
+STAFF.forEach(function(s,i){
+  var d=document.createElement('div');
+  d.className='person';
+  s.i=i;
+  d.innerHTML='<label><input type="checkbox" checked id="c'+i+'"><span class="name">'+s.n+(s.t?' <small>'+s.t+'</small>':'')+'</span><span class="tag" id="t'+i+'"></span></label>'
+    +(s.g?'<select id="s'+i+'" onchange="gen()" aria-label="'+s.n+' shift end"><option value="8">till 8</option><option value="7">till 7</option></select>':'');
+  box.appendChild(d);
+  hold(d,i);
+  paint(i);
+});
+
+/* long press on a name opens the front-duty choice */
+var pressTimer=null,longFired=false,sheetFor=-1;
+function hold(el,i){
+  var start=function(){
+    longFired=false;clearTimeout(pressTimer);
+    pressTimer=setTimeout(function(){longFired=true;if(navigator.vibrate)navigator.vibrate(20);openSheet(i)},500);
+  };
+  var stop=function(){clearTimeout(pressTimer)};
+  el.addEventListener('pointerdown',start);
+  el.addEventListener('pointerup',stop);
+  el.addEventListener('pointerleave',stop);
+  el.addEventListener('pointercancel',stop);
+  el.addEventListener('click',function(e){if(longFired){e.preventDefault();e.stopPropagation();longFired=false}},true);
+  el.addEventListener('contextmenu',function(e){e.preventDefault()});
+}
+function openSheet(i){
+  sheetFor=i;
+  document.getElementById('sheetTitle').textContent=STAFF[i].n+' — front duty?';
+  document.querySelectorAll('#sheetBg [data-m]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-m')===MODE[i])});
+  document.getElementById('sheetBg').hidden=false;
+}
+function closeSheet(){document.getElementById('sheetBg').hidden=true;sheetFor=-1}
+function setMode(m){
+  if(sheetFor<0)return;
+  MODE[sheetFor]=m;paint(sheetFor);closeSheet();gen();
+}
+function paint(i){
+  var t=document.getElementById('t'+i);
+  if(t)t.textContent=MODE[i]==='none'?'no front':MODE[i]==='short'?'unwell · 1 hr':'';
+}
+
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function fmt(m){var h=Math.floor(m/60),mm=m%60;return (h%12||12)+':'+(mm<10?'0':'')+mm}
+var GIRLS=STAFF.filter(function(s){return s.g}).map(function(s){return s.n});
+function nextOpener(names){
+  var st=null;try{st=JSON.parse(localStorage.getItem('open'))}catch(e){}
+  if(!st||!st.n)return names[0];
+  if(st.d===new Date().toDateString()&&names.indexOf(st.n)>=0)return st.n;
+  var k=GIRLS.indexOf(st.n);
+  for(var j=1;j<=GIRLS.length;j++){var c=GIRLS[(k+j)%GIRLS.length];if(names.indexOf(c)>=0)return c}
+  return names[0];
+}
+function fillOp(present){
+  var op=document.getElementById('op'),cur=op.value;
+  var names=present.filter(function(s){return s.g}).map(function(s){return s.n});
+  if(!names.length){op.innerHTML='<option value="">No girl present</option>';return}
+  if(!cur||names.indexOf(cur)<0)cur=nextOpener(names);
+  op.innerHTML=names.map(function(n){return '<option>'+n+'</option>'}).join('');
+  op.value=cur;
+}
+function save(){
+  var v=document.getElementById('op').value;
+  if(v)try{localStorage.setItem('open',JSON.stringify({n:v,d:new Date().toDateString()}))}catch(e){}
+}
+function gen(){
+  var warn=[];
+  var present=STAFF.filter(function(s,i){return document.getElementById('c'+i).checked});
+  fillOp(present);
+  var bill=present.filter(function(s){return s.b});
+  if(!bill.length)warn.push('No billing person present. Someone must cover the counter.');
+  var mode=function(s){return MODE[s.i];}
+
+  // who does front duty
+  var elig=present.filter(function(s){return mode(s)!=='none'});
+  var boys=shuf(elig.filter(function(s){return !s.g&&mode(s)==='full'}));
+  var closer=boys.filter(function(s){return !s.r})[0];
+  if(!closer&&boys.length){closer=boys[0];warn.push(closer.n+' has to do 9-10 PM front, but also sends the sell message.')}
+  if(!closer)warn.push('No boy available for 8-10 PM front.');
+  var rest=elig.filter(function(s){return s!==closer});
+  var shorts=shuf(rest.filter(function(s){return mode(s)==='short'}));
+  rest=rest.filter(function(s){return mode(s)==='full'});
+  var B=shuf(rest.filter(function(s){return !s.g})),G=shuf(rest.filter(function(s){return s.g})),order=[];
+  while(B.length||G.length){if(B.length)order.push(B.shift());if(G.length)order.push(G.shift())}
+  var l7=function(s){return s.g&&document.getElementById('s'+s.i).value==='7'};
+  var opn=document.getElementById('op').value;
+  order=order.filter(function(s){return !s.g}).concat(order.filter(l7),order.filter(function(s){return s.g&&!l7(s)&&s.n!==opn}),order.filter(function(s){return !l7(s)&&s.n===opn}));
+  order=order.slice(0,12);
+
+  // front time: 2 PM to 10 PM (16 half-hour units). Short-front people take 1 hour each at the start.
+  // Everyone else shares the rest evenly, the closer included.
+  var n=order.length,S=shorts.length;
+  var T=closer?16:Math.min(12,n*6);
+  var flexU=Math.max(0,T-2*S);
+  var N=n+(closer?1:0);
+  var base=N?Math.floor(flexU/N):0,rem=N?flexU%N:0;
+  var uOf=function(i){return base+(i<rem?1:0)};
+  var start=840+60*S;
+  var endAt=function(i){var x=start;for(var j=0;j<=i;j++)x+=uOf(j)*30;return x};
+  // girls must finish by their leaving time, so push boys later in the day
+  for(var it=0;it<20&&closer;it++){
+    var bad=-1;
+    for(var q=0;q<n;q++){if(order[q].g&&endAt(q)>(l7(order[q])?1140:1200)){bad=q;break}}
+    if(bad<0)break;
+    var bi=-1;
+    for(var q2=0;q2<bad;q2++){if(!order[q2].g){bi=q2;break}}
+    if(bi<0)break;
+    order.push(order.splice(bi,1)[0]);
+  }
+  for(var it2=0;it2<20;it2++){var bad2=-1;for(var q3=0;q3<n;q3++){if(l7(order[q3])&&endAt(q3)>1140){bad2=q3;break}}if(bad2<=0)break;var tmp=order[bad2];order[bad2]=order[bad2-1];order[bad2-1]=tmp[...]
+
+  var t=840,front=[];
+  shorts.forEach(function(s){front.push({p:s,a:t,b:t+60});t+=60});
+  t=start;
+  order.forEach(function(s,i){
+    var u=uOf(i);
+    front.push({p:s,a:t,b:t+u*30});t+=u*30;
+    if(s.g&&t>(l7(s)?1140:1200))warn.push(s.n+' leaves at '+(l7(s)?'7':'8')+' PM but her front ends after '+(l7(s)?'7':'8')+'.');
+    if(u>6)warn.push(s.n+' has '+(u/2)+' hours of front duty. Too few people present.');
+  });
+  if(closer){
+    front.push({p:closer,a:t,b:1320});
+    if(1320-t>180)warn.push(closer.n+' has '+((1320-t)/60)+' hours of front duty. Too few people present.');
+  }else if(t<1320)warn.push('Front is not covered from '+fmt(t)+' to 10:00.');
+  var lines=front.map(function(f){return f.p.n+':- '+fmt(f.a)+' to '+fmt(f.b)});
+
+  // lunch
+  var slots=[840,870,900,930,960,990],load=slots.map(function(){return 0}),bl=slots.map(function(){return 0}),res=slots.map(function(){return []});
+  var info=present.map(function(s){
+    var f=front.filter(function(x){return x.p===s})[0];
+    var ok=[];slots.forEach(function(st,k){if(!f||st+30<=f.a||st>=f.b)ok.push(k)});
+    return {p:s,ok:ok};
+  });
+  var pr=function(o){return o.p.n===opn?0:(o.p.g?1:((o.p.n==='Prem'||o.p.n==='Kunal')?1.5:2))};
+  info=shuf(info).sort(function(x,y){return pr(x)-pr(y)||x.ok.length-y.ok.length});
+  // Prem and Kunal always have lunch together: handle Prem first, then Kunal right after
+  var pi=-1,ki=-1;
+  info.forEach(function(o,x){if(o.p.n==='Prem')pi=x;if(o.p.n==='Kunal')ki=x});
+  if(pi>=0&&ki>=0){
+    var ko=info.splice(ki,1)[0];
+    var pj=0;info.forEach(function(o,x){if(o.p.n==='Prem')pj=x});
+    info.splice(pj+1,0,ko);
+  }
+  var slotOf={};
+  info.forEach(function(o){
+    if(!o.ok.length){warn.push(o.p.n+' has no free lunch slot.');return}
+    // never more than 2 people at lunch together (Prem needs an empty slot so Kunal can join him)
+    var lim=(o.p.n==='Prem'&&pi>=0&&ki>=0)?1:2;
+    var room=o.ok.filter(function(k){return load[k]<lim});
+    if(!room.length)room=o.ok.filter(function(k){return load[k]<2});
+    if(!room.length){room=o.ok;warn.push(o.p.n+' has to share lunch with 2 others. No free slot.')}
+    var best=-1,pool=room.filter(function(k){return !(o.p.b&&bl[k]+1>=bill.length&&bill.length>0)});
+    if(!pool.length){pool=room;if(bill.length&&o.p.b)warn.push('Billing counter may be empty at '+fmt(slots[pool[0]])+'.')}
+    if(o.p.n==='Kunal'&&slotOf.Prem!==undefined){
+      if(o.ok.indexOf(slotOf.Prem)>=0&&load[slotOf.Prem]<2)best=slotOf.Prem;
+      else warn.push('Kunal cannot have lunch with Prem.');
+    }
+    if(best<0&&pr(o)<=1){var cap=Math.ceil(info.length/6),e=pool.filter(function(k){return load[k]<cap});best=e.length?e[0]:-1}
+    if(best<0)pool.forEach(function(k){if(best<0||load[k]<load[best])best=k});
+    load[best]++;if(o.p.b)bl[best]++;res[best].push(o.p.n);slotOf[o.p.n]=best;
+  });
+  var lun=[];
+  res.forEach(function(r,k){if(r.length)lun.push(r.join(', ')+':- '+fmt(slots[k])+' to '+fmt(slots[k]+30))});
+
+  var text='Front roaster\n\n'+lines.join('\n')+'\n\n\nLunch roaster\n\n'+lun.join('\n');
+  var ta=document.getElementById('out');
+  ta.value=text;
+  ta.style.height='auto';ta.style.height=Math.max(200,ta.scrollHeight+4)+'px';
+  document.getElementById('warn').textContent=warn.join('\n');
+  document.getElementById('wa').href='https://wa.me/?text='+encodeURIComponent(text);
+  document.getElementById('copy').textContent='Copy';
+}
+function cp(){
+  var ta=document.getElementById('out'),b=document.getElementById('copy');
+  save();
+  if(!ta.value)gen();
+  var done=function(){b.textContent='Copied'};
+  try{navigator.clipboard.writeText(ta.value).then(done,function(){ta.select();document.execCommand('copy');done()})}
+  catch(e){try{ta.select();document.execCommand('copy');done()}catch(e2){}}
+}
+gen();
+</script>
+</body>
+</html>
